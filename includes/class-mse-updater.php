@@ -129,14 +129,17 @@ class MSE_Updater {
 
 	/**
 	 * GitHub's source zipballs unpack to "owner-repo-hash/"; rename to the
-	 * plugin's folder so the update replaces the installed copy.
+	 * folder the plugin is installed in, so the update replaces it in place
+	 * and the plugin stays active.
 	 */
 	public static function fix_folder( $source, $remote_source, $upgrader, $hook_extra = array() ) {
 		global $wp_filesystem;
-		if ( empty( $hook_extra['plugin'] ) || plugin_basename( MSE_FILE ) !== $hook_extra['plugin'] ) {
+		$main = basename( MSE_FILE );
+		if ( empty( $hook_extra['plugin'] ) || basename( $hook_extra['plugin'] ) !== $main || ! $wp_filesystem->exists( trailingslashit( $source ) . $main ) ) {
 			return $source;
 		}
-		$wanted = trailingslashit( $remote_source ) . self::SLUG . '/';
+		$folder = dirname( $hook_extra['plugin'] );
+		$wanted = trailingslashit( $remote_source ) . ( '.' === $folder ? self::SLUG : $folder ) . '/';
 		if ( trailingslashit( $source ) === $wanted ) {
 			return $source;
 		}
