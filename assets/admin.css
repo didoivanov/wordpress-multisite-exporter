@@ -48,3 +48,7 @@
 .mse .mse-form fieldset label { display: inline-block; margin-right: 16px; }
 .mse .mse-force { color: #b32d2e; }
 .mse .mse-footer { margin-top: 24px; color: #646970; }
+.mse h2 .mse-start-all-wrap { margin-left: 12px; font-size: 13px; font-weight: 400; }
+.mse h2 .mse-start-all-wrap .mse-start-all { margin-left: 0; }
+.mse .mse-all-theme-label { margin-left: 8px; }
+.mse .mse-form select { margin-left: 4px; }

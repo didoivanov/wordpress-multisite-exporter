@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Missing theme: choose a replacement from the themes installed on the target network, per import or for all imports at once ("Start all").
+- Fix: imports failed with "Call to undefined function PHPMailer\PHPMailer\mail()" on hosts where PHP's mail() is disabled. No e-mails are sent while importing.
+- Fix: Retry after a failed site creation reuses the site the import created instead of failing with "domain already exists".
+
 ## 0.1.0
 
 - First release.

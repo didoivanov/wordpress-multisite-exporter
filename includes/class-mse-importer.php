@@ -157,8 +157,15 @@ class MSE_Importer {
 			$pairs[] = array( trim( $parts[0] ), trim( $parts[1] ) );
 		}
 
+		// Must be an installed theme's exact folder name (they can be mixed-case).
+		$theme = isset( $config['theme'] ) ? (string) $config['theme'] : '';
+		if ( ! MSE_Preflight::missing_themes( $manifest ) || ! array_key_exists( $theme, wp_get_themes() ) ) {
+			$theme = '';
+		}
+
 		$params = array(
 			'target_domain' => $domain,
+			'theme'         => $theme,
 			'mode'          => 'overwrite' === $config['mode'] ? 'overwrite' : 'new',
 			'extra_pairs'   => $pairs,
 			'old_hosts'     => ! empty( $config['replace_old_hosts'] ) && ! empty( $manifest['source']['old_hosts'] ) ? $manifest['source']['old_hosts'] : array(),
@@ -189,6 +196,10 @@ class MSE_Importer {
 	 * @param float $deadline microtime() deadline.
 	 */
 	public static function step( array &$job, $deadline ) {
+		// No e-mails during a migration. Creating a site makes core notify the
+		// network admin, which fatals on hosts where mail() is disabled.
+		add_filter( 'pre_wp_mail', '__return_false' );
+
 		switch ( $job['state']['phase'] ) {
 			case 'fetch':
 				self::fetch( $job, $deadline );
@@ -313,6 +324,7 @@ class MSE_Importer {
 				'network'  => $manifest['source']['network_domain'],
 				'created'  => $manifest['created'],
 				'theme'    => $manifest['theme']['name'],
+				'theme_missing' => (bool) MSE_Preflight::missing_themes( $manifest ),
 				'plugins'  => count( $manifest['plugins'] ),
 				'tables'   => count( $manifest['tables'] ),
 				'rows'     => array_sum( wp_list_pluck( $manifest['tables'], 'rows' ) ),
@@ -335,7 +347,14 @@ class MSE_Importer {
 		$domain   = $job['params']['target_domain'];
 		$existing = MSE_Preflight::find_site( $domain );
 
-		if ( $existing ) {
+		// A site this job created before an interrupted step is reused, so
+		// Retry works instead of failing with "domain already exists".
+		$own = $existing && ( ( isset( $job['state']['creating'] ) && $job['state']['creating'] === $domain ) || strtotime( $existing->registered . ' UTC' ) >= $job['created'] );
+
+		if ( $existing && $own && 'new' === $job['params']['mode'] ) {
+			$blog_id = (int) $existing->blog_id;
+			MSE_Jobs::log( $job, sprintf( 'Reusing site %s (ID %d) created by this import.', $domain, $blog_id ) );
+		} elseif ( $existing ) {
 			if ( 'overwrite' !== $job['params']['mode'] ) {
 				throw new RuntimeException( sprintf( 'A site with the domain %s already exists. Choose "overwrite" to replace it.', $domain ) );
 			}
@@ -345,6 +364,8 @@ class MSE_Importer {
 			$blog_id = (int) $existing->blog_id;
 			MSE_Jobs::log( $job, sprintf( 'Overwriting existing site %s (ID %d).', $domain, $blog_id ) );
 		} else {
+			$job['state']['creating'] = $domain;
+			MSE_Jobs::save( $job );
 			$blog_id = wp_insert_site(
 				array(
 					'domain'     => $domain,
@@ -804,6 +825,10 @@ class MSE_Importer {
 			$wpdb->query( "DELETE FROM $opts WHERE option_name IN ('rewrite_rules', '_elementor_global_css', '_elementor_assets_data') OR option_name LIKE '\\_transient\\_%' OR option_name LIKE '\\_site\\_transient\\_%'" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		}
 
+		if ( ! empty( $job['params']['theme'] ) && in_array( 'options', $tables, true ) ) {
+			self::apply_theme( $job, $p . 'options', wp_get_theme( $job['params']['theme'] ) );
+		}
+
 		$flags = $manifest['source']['flags'];
 		update_blog_details(
 			$blog_id,
@@ -848,6 +873,35 @@ class MSE_Importer {
 	}
 
 	// ------------------------------------------------------------ Helpers.
+
+	/**
+	 * Activates a replacement theme on the imported site and allows it there
+	 * when it is not network-enabled.
+	 */
+	private static function apply_theme( array &$job, $table, WP_Theme $theme ) {
+		global $wpdb;
+		if ( ! $theme->exists() ) {
+			MSE_Jobs::log( $job, sprintf( 'Replacement theme "%s" no longer exists; the site keeps its original theme setting.', $job['params']['theme'] ), 'warning' );
+			return;
+		}
+		$set = function ( $name, $value ) use ( $wpdb, $table ) {
+			$wpdb->query( $wpdb->prepare( "INSERT INTO `$table` (option_name, option_value, autoload) VALUES (%s, %s, 'yes') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)", $name, $value ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		};
+		$set( 'template', $theme->get_template() );
+		$set( 'stylesheet', $theme->get_stylesheet() );
+		$set( 'current_theme', $theme->get( 'Name' ) );
+
+		if ( ! array_key_exists( $theme->get_stylesheet(), WP_Theme::get_allowed_on_network() ) ) {
+			$allowed = maybe_unserialize( $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM `$table` WHERE option_name = %s", 'allowedthemes' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$allowed = is_array( $allowed ) ? $allowed : array();
+			$allowed[ $theme->get_stylesheet() ] = true;
+			if ( $theme->get_template() !== $theme->get_stylesheet() ) {
+				$allowed[ $theme->get_template() ] = true;
+			}
+			$set( 'allowedthemes', serialize( $allowed ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
+		}
+		MSE_Jobs::log( $job, sprintf( 'Theme "%1$s" is missing here; activated "%2$s" instead.', $job['result']['source']['theme'] ?? '', $theme->get( 'Name' ) ) );
+	}
 
 	/**
 	 * Reads and validates manifest.json (always the first entry).

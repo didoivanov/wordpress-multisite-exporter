@@ -56,7 +56,8 @@ When a site is done, use **Copy URL** (or **Download**).
 
 Each package is checked and waits for **review**:
 
-- **Compatibility check:** missing theme or plugins (blocks the import unless you tick *Import anyway*), different plugin, theme or WordPress versions, a site that already uses the domain, and free disk space.
+- **Compatibility check:** missing plugins (blocks the import unless you tick *Import anyway*), different plugin, theme or WordPress versions, a site that already uses the domain, and free disk space.
+- **Replacement theme:** if the site's theme is not installed on this network, choose one of the installed themes instead. When starting all imports at once, one replacement theme can be chosen for all of them.
 - **Target domain:** defaults to the site's current domain (e.g. `testsite.com`).
 - **Create new site** or **Overwrite existing site** with that domain.
 - **Earlier addresses:** URLs from before a domain switch (e.g. the install subdomain `testsite.cms1.com`) are detected and replaced with the target domain (on by default).
@@ -77,6 +78,7 @@ Point the domain to the new host. Before switching, you can preview the site by 
   - **Missing users:** created with their original password hash, so passwords keep working.
   - **Login taken by someone else:** the new user gets a suffix (`author-2`).
   - **Content ownership:** post authors, comment users and `_edit_last` are remapped to the new user IDs.
+- **No e-mails:** nothing is sent while importing, including core's "new site" notification (which also fails on hosts where PHP `mail()` is disabled).
 - **Clean-up:** resets cached data (rewrite rules, transients, Elementor CSS), sets `home` and `siteurl`, copies the site's flags (public, archived and others) and clears caches.
 - **Media:** copied into the new site's uploads folder. Executable files (`.php` and similar) are skipped for safety.
 

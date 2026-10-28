@@ -48,25 +48,22 @@ class MSE_Preflight {
 		}
 
 		// Theme.
-		$theme_ok = true;
-		foreach ( array_unique( array( $manifest['theme']['stylesheet'], $manifest['theme']['template'] ) ) as $slug ) {
-			$is_parent = $slug !== $manifest['theme']['stylesheet'];
-			$theme     = wp_get_theme( $slug );
-			$want      = $is_parent ? $manifest['theme']['parent_version'] : $manifest['theme']['version'];
-			$label     = $is_parent ? sprintf( 'Parent theme "%s"', $slug ) : sprintf( 'Theme "%s"', $slug );
-			if ( ! $theme->exists() ) {
-				$add( 'error', $label . ' is not installed', 'Install the same theme on this network before importing.' );
-				$theme_ok = false;
-				continue;
+		$missing     = self::missing_themes( $manifest );
+		$replacement = ! empty( $params['theme'] ) ? wp_get_theme( $params['theme'] ) : null;
+		if ( $missing && $replacement && $replacement->exists() ) {
+			$add( 'warning', sprintf( 'Theme "%1$s" is not installed; "%2$s" will be used instead', implode( '", "', $missing ), $replacement->get( 'Name' ) ), 'Theme-specific settings (Customizer options, widget areas, menu locations) may need to be set up again.' );
+		} elseif ( $missing ) {
+			$add( 'error', sprintf( 'Theme "%s" is not installed', implode( '", "', $missing ) ), 'Choose a replacement theme below, or install the same theme on this network first.' );
+		} else {
+			foreach ( array_unique( array( $manifest['theme']['stylesheet'], $manifest['theme']['template'] ) ) as $slug ) {
+				$is_parent = $slug !== $manifest['theme']['stylesheet'];
+				$theme     = wp_get_theme( $slug );
+				$want      = $is_parent ? $manifest['theme']['parent_version'] : $manifest['theme']['version'];
+				$label     = $is_parent ? sprintf( 'Parent theme "%s"', $slug ) : sprintf( 'Theme "%s"', $slug );
+				if ( $want && version_compare( $theme->get( 'Version' ), $want, '!=' ) ) {
+					$add( 'warning', sprintf( '%s version differs', $label ), sprintf( 'Source %s, this network %s.', $want, $theme->get( 'Version' ) ) );
+				}
 			}
-			if ( $want && version_compare( $theme->get( 'Version' ), $want, '!=' ) ) {
-				$add( 'warning', sprintf( '%s version differs', $label ), sprintf( 'Source %s, this network %s.', $want, $theme->get( 'Version' ) ) );
-			}
-			if ( ! $is_parent && ! array_key_exists( $slug, WP_Theme::get_allowed_on_network() ) ) {
-				$add( 'info', sprintf( '%s is not network-enabled', $label ), 'The import keeps the theme active for this site, but you may want to network-enable it.' );
-			}
-		}
-		if ( $theme_ok ) {
 			$add( 'ok', sprintf( 'Theme "%s" is installed', $manifest['theme']['name'] ) );
 		}
 
@@ -126,6 +123,22 @@ class MSE_Preflight {
 		}
 
 		return $checks;
+	}
+
+	/**
+	 * Themes (child and/or parent) of the package that are not installed here.
+	 *
+	 * @param array $manifest Package manifest.
+	 * @return string[] Theme slugs.
+	 */
+	public static function missing_themes( array $manifest ) {
+		$missing = array();
+		foreach ( array_unique( array( $manifest['theme']['stylesheet'], $manifest['theme']['template'] ) ) as $slug ) {
+			if ( ! wp_get_theme( $slug )->exists() ) {
+				$missing[] = $slug;
+			}
+		}
+		return $missing;
 	}
 
 	/**

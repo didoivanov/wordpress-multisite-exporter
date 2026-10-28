@@ -43,6 +43,12 @@ class MSE_Admin {
 				'ajax'      => admin_url( 'admin-ajax.php' ),
 				'nonce'     => wp_create_nonce( self::NONCE ),
 				'chunkSize' => self::chunk_size(),
+				'themes'    => array_map(
+					function ( $theme ) {
+						return $theme->get( 'Name' );
+					},
+					wp_get_themes()
+				),
 			)
 		);
 	}
@@ -178,7 +184,17 @@ class MSE_Admin {
 				</div>
 				<h2>
 					<?php esc_html_e( 'Import jobs', 'wordpress-multisite-exporter' ); ?>
-					<button type="button" class="button mse-start-all" hidden><?php esc_html_e( 'Start all ready imports with default settings', 'wordpress-multisite-exporter' ); ?></button>
+					<span class="mse-start-all-wrap" hidden>
+						<button type="button" class="button mse-start-all"><?php esc_html_e( 'Start all ready imports with default settings', 'wordpress-multisite-exporter' ); ?></button>
+						<label class="mse-all-theme-label"><?php esc_html_e( 'Replacement for missing themes:', 'wordpress-multisite-exporter' ); ?>
+							<select class="mse-all-theme">
+								<option value=""><?php esc_html_e( '— none (skip those imports) —', 'wordpress-multisite-exporter' ); ?></option>
+								<?php foreach ( wp_get_themes() as $slug => $theme ) : ?>
+									<option value="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $theme->get( 'Name' ) ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</label>
+					</span>
 				</h2>
 				<div class="mse-jobs" data-type="import"><p class="description"><?php esc_html_e( 'No imports yet.', 'wordpress-multisite-exporter' ); ?></p></div>
 			</section>
@@ -323,11 +339,12 @@ class MSE_Admin {
 			if ( ! $job ) {
 				throw new InvalidArgumentException( 'Unknown job.' );
 			}
-			$config = isset( $req['all'] ) ? array_merge( $job['result']['defaults'], array( 'extra_pairs' => '', 'replace_old_hosts' => true, 'skip_guids' => true, 'force' => false ) ) : array(
+			$config = isset( $req['all'] ) ? array_merge( $job['result']['defaults'], array( 'extra_pairs' => '', 'replace_old_hosts' => true, 'skip_guids' => true, 'force' => false, 'theme' => isset( $req['theme'] ) ? $req['theme'] : '' ) ) : array(
 				'target_domain'     => isset( $req['target_domain'] ) ? $req['target_domain'] : '',
 				'mode'              => isset( $req['mode'] ) ? $req['mode'] : 'new',
 				'extra_pairs'       => isset( $req['extra_pairs'] ) ? $req['extra_pairs'] : '',
 				'replace_old_hosts' => ! empty( $req['replace_old_hosts'] ) && 'false' !== $req['replace_old_hosts'],
+				'theme'             => isset( $req['theme'] ) ? $req['theme'] : '',
 				'skip_guids'    => ! empty( $req['skip_guids'] ) && 'false' !== $req['skip_guids'],
 				'force'         => ! empty( $req['force'] ) && 'false' !== $req['force'],
 			);

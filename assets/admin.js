@@ -185,7 +185,7 @@
 		}
 		e.target.disabled = true;
 		try {
-			const data = await call( 'configure', { all: 1 } );
+			const data = await call( 'configure', { all: 1, theme: $( '.mse-all-theme' ).value } );
 			const blocked = data.configured.filter( ( c ) => c.blocked ).length;
 			if ( blocked ) {
 				notify( blocked + ' import(s) have failed checks and were not started. Review them individually.', 'warning' );
@@ -229,6 +229,9 @@
 			checksHtml( job.result.preflight ) +
 			'<div class="mse-form">' +
 			'<label>Target domain <input type="text" name="target_domain" class="regular-text" value="' + esc( d.target_domain ) + '"></label>' +
+			( src.theme_missing ? '<label>Replacement theme (the original theme is not installed here) <select name="theme"><option value="">— choose a theme —</option>' +
+				Object.entries( MSE.themes || {} ).map( ( [ slug, name ] ) => '<option value="' + esc( slug ) + '">' + esc( name ) + ' (' + esc( slug ) + ')</option>' ).join( '' ) +
+				'</select></label>' : '' ) +
 			'<fieldset><label><input type="radio" name="mode-' + job.id + '" value="new"' + ( d.mode !== 'overwrite' ? ' checked' : '' ) + '> Create new site</label> ' +
 			'<label><input type="radio" name="mode-' + job.id + '" value="overwrite"' + ( d.mode === 'overwrite' ? ' checked' : '' ) + '> Overwrite existing site with this domain</label></fieldset>' +
 			( ( src.old_hosts || [] ).length ? '<label><input type="checkbox" name="replace_old_hosts" checked> Also replace the site\'s earlier addresses with the target domain: <code>' + src.old_hosts.map( esc ).join( '</code>, <code>' ) + '</code></label>' : '' ) +
@@ -334,7 +337,8 @@
 				anyRunnable = true;
 			}
 		} );
-		$( '.mse-start-all' ).hidden = ! state.jobs.some( ( j ) => j.status === 'review' );
+		$( '.mse-start-all-wrap' ).hidden = ! state.jobs.some( ( j ) => j.status === 'review' );
+		$( '.mse-all-theme-label' ).hidden = ! state.jobs.some( ( j ) => j.status === 'review' && j.result.source && j.result.source.theme_missing );
 		$( '.mse-keep-open' ).hidden = ! anyRunnable;
 		return anyRunnable;
 	}
@@ -383,6 +387,7 @@
 					mode: mode ? mode.value : 'new',
 					extra_pairs: $( '[name="extra_pairs"]', card ).value,
 					replace_old_hosts: $( '[name="replace_old_hosts"]', card ) && $( '[name="replace_old_hosts"]', card ).checked ? '1' : '',
+					theme: $( '[name="theme"]', card ) ? $( '[name="theme"]', card ).value : '',
 					skip_guids: $( '[name="skip_guids"]', card ).checked ? '1' : '',
 					force: $( '[name="force"]', card ) && $( '[name="force"]', card ).checked ? '1' : '',
 				} );
