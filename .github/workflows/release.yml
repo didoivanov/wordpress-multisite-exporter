@@ -1,0 +1,44 @@
+name: Release
+
+# Push a tag like v0.2.0 to publish a release. WordPress sites running the
+# plugin will then see the update under Network Admin → Updates.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version numbers match the tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          HEADER=$(grep -m1 -E '^\s*\*\s*Version:' wordpress-multisite-exporter.php | sed -E 's/.*Version:\s*//')
+          CONST=$(grep -m1 "define( 'MSE_VERSION'" wordpress-multisite-exporter.php | sed -E "s/.*'MSE_VERSION', '([^']+)'.*/\1/")
+          echo "tag=$TAG header=$HEADER constant=$CONST"
+          if [ "$TAG" != "$HEADER" ] || [ "$TAG" != "$CONST" ]; then
+            echo "::error::Tag $TAG must match the plugin header Version ($HEADER) and MSE_VERSION ($CONST)."
+            exit 1
+          fi
+
+      - name: Run unit tests
+        run: php tests/run-unit-tests.php
+
+      - name: Lint PHP
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Build plugin zip
+        # .gitattributes export-ignore keeps tests and CI files out of the zip.
+        run: git archive --format=zip --prefix=wordpress-multisite-exporter/ -o wordpress-multisite-exporter.zip HEAD
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: wordpress-multisite-exporter.zip
+          generate_release_notes: true

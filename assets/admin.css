@@ -1,0 +1,50 @@
+.mse .mse-version { font-size: 13px; color: #646970; font-weight: 400; }
+.mse .mse-tab { margin-top: 16px; }
+.mse .mse-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0; }
+.mse .mse-filter { min-width: 260px; }
+.mse .mse-sites-wrap { max-height: 420px; overflow: auto; border: 1px solid #c3c4c7; }
+.mse .mse-sites { border: 0; }
+.mse .mse-sites thead { position: sticky; top: 0; background: #fff; z-index: 1; }
+.mse .mse-badge { background: #2271b1; color: #fff; border-radius: 3px; padding: 0 5px; font-size: 11px; }
+
+.mse .mse-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.mse .mse-card { background: #fff; border: 1px solid #c3c4c7; padding: 4px 16px 8px; }
+.mse .mse-local { margin: 0; }
+.mse h2 .mse-start-all { margin-left: 12px; vertical-align: middle; }
+
+.mse .mse-job { background: #fff; border: 1px solid #c3c4c7; border-left-width: 4px; padding: 10px 14px; margin-bottom: 10px; }
+.mse .mse-job[data-status="done"] { border-left-color: #00a32a; }
+.mse .mse-job[data-status="error"] { border-left-color: #d63638; }
+.mse .mse-job[data-status="review"] { border-left-color: #dba617; }
+.mse .mse-job[data-status="running"], .mse .mse-job[data-status="preparing"] { border-left-color: #2271b1; }
+.mse .mse-job-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mse .mse-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px; }
+.mse .mse-status { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; padding: 1px 6px; border-radius: 3px; background: #f0f0f1; }
+.mse .mse-status-done { background: #edfaef; color: #007017; }
+.mse .mse-status-error { background: #fcf0f1; color: #b32d2e; }
+.mse .mse-status-review { background: #fcf9e8; color: #8a6d00; }
+.mse .mse-status-running, .mse .mse-status-preparing { background: #f0f6fc; color: #135e96; }
+.mse .mse-bar { height: 8px; background: #f0f0f1; border-radius: 4px; overflow: hidden; margin: 10px 0 4px; }
+.mse .mse-bar span { display: block; height: 100%; background: #2271b1; transition: width .4s; }
+.mse .mse-job[data-status="done"] .mse-bar span { background: #00a32a; }
+.mse .mse-label { color: #50575e; font-size: 12px; }
+.mse .mse-error { color: #b32d2e; margin-top: 6px; font-weight: 600; white-space: pre-wrap; }
+.mse .mse-log { margin-top: 6px; font-size: 12px; color: #50575e; }
+.mse .mse-log div { white-space: pre-wrap; font-family: Consolas, Monaco, monospace; font-size: 11px; }
+.mse .mse-log-warning { color: #8a6d00; }
+.mse .mse-log-error { color: #b32d2e; }
+.mse .mse-full-log { max-height: 360px; overflow: auto; background: #f6f7f7; padding: 8px; font-size: 11px; white-space: pre-wrap; }
+
+.mse .mse-review { margin-top: 8px; }
+.mse .mse-checks { margin: 8px 0; }
+.mse .mse-checks li { padding: 4px 0 4px 24px; position: relative; margin: 0; }
+.mse .mse-checks li::before { position: absolute; left: 0; font-family: dashicons; font-size: 18px; line-height: 1; }
+.mse .mse-check-ok::before { content: "\f147"; color: #00a32a; }
+.mse .mse-check-info::before { content: "\f348"; color: #2271b1; }
+.mse .mse-check-warning::before { content: "\f534"; color: #dba617; }
+.mse .mse-check-error::before { content: "\f153"; color: #d63638; }
+.mse .mse-detail { color: #50575e; font-size: 12px; }
+.mse .mse-form label { display: block; margin: 8px 0; }
+.mse .mse-form fieldset label { display: inline-block; margin-right: 16px; }
+.mse .mse-force { color: #b32d2e; }
+.mse .mse-footer { margin-top: 24px; color: #646970; }
