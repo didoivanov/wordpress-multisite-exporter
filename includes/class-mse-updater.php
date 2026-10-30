@@ -1,14 +1,16 @@
 <?php
 /**
- * Delivers plugin updates from GitHub Releases into the normal WordPress
- * update screens.
+ * Delivers plugin updates from GitHub into the normal WordPress update
+ * screens: Network Admin → Plugins / Updates.
+ *
+ * The version is read from the plugin header on the repository's main branch,
+ * so every push that raises the version is offered as an update; no GitHub
+ * release is needed. The package is GitHub's zip of that branch (its folder
+ * is renamed to the installed folder by fix_folder()).
  *
  * The plugin header's "Update URI: https://github.com/..." makes WordPress
  * call the `update_plugins_github.com` filter (WP 5.8+), and also keeps
  * WordPress.org from ever offering an unrelated plugin with the same slug.
- *
- * Release convention: tag "v1.2.3" with an attached asset
- * "wordpress-multisite-exporter.zip" (built by .github/workflows/release.yml).
  *
  * @package MultisiteExporter
  */
@@ -18,8 +20,9 @@ defined( 'ABSPATH' ) || exit;
 class MSE_Updater {
 
 	const REPO      = 'didoivanov/wordpress-multisite-exporter';
+	const BRANCH    = 'main';
 	const SLUG      = 'wordpress-multisite-exporter';
-	const TRANSIENT = 'mse_github_release';
+	const TRANSIENT = 'mse_github_update';
 
 	public static function init() {
 		add_filter( 'update_plugins_github.com', array( __CLASS__, 'check' ), 10, 3 );
@@ -30,7 +33,7 @@ class MSE_Updater {
 	}
 
 	/**
-	 * Latest release from the GitHub API (cached for 6 hours).
+	 * Latest version on GitHub's main branch (cached for 6 hours).
 	 *
 	 * @param bool $force Bypass the cache.
 	 * @return array|null
@@ -41,39 +44,34 @@ class MSE_Updater {
 			return $cached ? $cached : null;
 		}
 
-		$response = wp_remote_get(
-			'https://api.github.com/repos/' . self::REPO . '/releases/latest',
-			array(
-				'timeout' => 10,
-				'headers' => array(
-					'Accept'     => 'application/vnd.github+json',
-					'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . self::SLUG,
-				),
-			)
+		$raw     = 'https://raw.githubusercontent.com/' . self::REPO . '/' . self::BRANCH . '/';
+		$args    = array(
+			'timeout' => 10,
+			'headers' => array( 'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . self::SLUG ),
 		);
-		$code = wp_remote_retrieve_response_code( $response );
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( is_wp_error( $response ) || 200 !== $code || empty( $data['tag_name'] ) ) {
+		$main    = wp_remote_get( $raw . self::SLUG . '.php', $args );
+		$version = '';
+		if ( 200 === wp_remote_retrieve_response_code( $main ) && preg_match( '/^[ \t\/*#@]*Version:\s*(\S+)/mi', wp_remote_retrieve_body( $main ), $m ) ) {
+			$version = $m[1];
+		}
+		if ( ! $version ) {
 			// Cache failures briefly so a GitHub outage doesn't slow every admin page.
 			set_site_transient( self::TRANSIENT, array(), 30 * MINUTE_IN_SECONDS );
 			return null;
 		}
 
-		$package = '';
-		foreach ( (array) $data['assets'] as $asset ) {
-			if ( self::SLUG . '.zip' === $asset['name'] ) {
-				$package = $asset['browser_download_url'];
-				break;
-			}
+		// Release notes: the CHANGELOG.md section for this version.
+		$notes     = '';
+		$changelog = wp_remote_get( $raw . 'CHANGELOG.md', $args );
+		if ( 200 === wp_remote_retrieve_response_code( $changelog ) && preg_match( '/^## ' . preg_quote( $version, '/' ) . '\s*$(.*?)(?=^## |\z)/ms', wp_remote_retrieve_body( $changelog ), $m ) ) {
+			$notes = trim( $m[1] );
 		}
 
 		$release = array(
-			'version'   => ltrim( $data['tag_name'], 'vV' ),
-			'package'   => $package ? $package : $data['zipball_url'],
-			'url'       => $data['html_url'],
-			'notes'     => (string) $data['body'],
-			'published' => $data['published_at'],
+			'version' => $version,
+			'package' => 'https://github.com/' . self::REPO . '/archive/refs/heads/' . self::BRANCH . '.zip',
+			'url'     => 'https://github.com/' . self::REPO . '/blob/' . self::BRANCH . '/CHANGELOG.md',
+			'notes'   => $notes,
 		);
 		set_site_transient( self::TRANSIENT, $release, 6 * HOUR_IN_SECONDS );
 		return $release;
@@ -118,7 +116,6 @@ class MSE_Updater {
 			'homepage'      => 'https://github.com/' . self::REPO,
 			'requires'      => '5.8',
 			'requires_php'  => '7.4',
-			'last_updated'  => $release['published'],
 			'download_link' => $release['package'],
 			'sections'      => array(
 				'description' => 'Export single sites from a WordPress multisite network and import them into another network.',

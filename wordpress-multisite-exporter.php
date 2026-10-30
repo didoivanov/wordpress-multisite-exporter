@@ -3,7 +3,7 @@
  * Plugin Name:       Multisite Exporter
  * Plugin URI:        https://github.com/didoivanov/wordpress-multisite-exporter
  * Description:       Export single sites from a WordPress multisite network and import them into another multisite network: database, users and media, with plugin/theme compatibility checks.
- * Version:           0.1.1
+ * Version:           0.1.2
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            didoivanov
@@ -43,7 +43,7 @@ if ( defined( 'MSE_FILE' ) ) {
 	return;
 }
 
-define( 'MSE_VERSION', '0.1.1' );
+define( 'MSE_VERSION', '0.1.2' );
 define( 'MSE_FILE', __FILE__ );
 define( 'MSE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MSE_URL', plugin_dir_url( __FILE__ ) );

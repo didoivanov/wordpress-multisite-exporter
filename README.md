@@ -13,7 +13,7 @@ The package is imported into the other network as a new site, or over an existin
 
 ## Installation
 
-1. Download `wordpress-multisite-exporter.zip` from the latest [release](https://github.com/didoivanov/wordpress-multisite-exporter/releases).
+1. Download the plugin zip: on GitHub click **Code → Download ZIP** (or use `wordpress-multisite-exporter.zip` from a [release](https://github.com/didoivanov/wordpress-multisite-exporter/releases), if there is one). Install only one copy per network.
 2. On **both** networks go to **Network Admin → Plugins → Add New → Upload Plugin** and upload the zip.
 3. Click **Network Activate**.
 4. Open **Network Admin → Site Migrator**.
@@ -22,19 +22,14 @@ Requires WordPress 5.8+ and PHP 7.4+.
 
 ## Updates from wp-admin
 
-The plugin checks this repository's GitHub Releases. When a newer version is published, it appears under **Network Admin → Updates** and **Plugins** like any other plugin, and you update with one click. Use the plugin's **Check for updates** link to check immediately instead of waiting up to 6 hours.
+The plugin checks the version number in `wordpress-multisite-exporter.php` on this repository's `main` branch. When it is higher than the installed version, the update appears under **Network Admin → Plugins** and **Updates** like any other plugin, and you install it with one click. WordPress checks every 12 hours; click the plugin's **Check for updates** link to check immediately.
 
 ### Publishing a new version (maintainers)
 
-1. Bump the version in `wordpress-multisite-exporter.php`, in both the `Version:` header and `MSE_VERSION`, and add an entry to `CHANGELOG.md`.
-2. Commit, then tag and push:
-   ```bash
-   git tag v0.2.0
-   ```
-   ```bash
-   git push origin main --tags
-   ```
-3. The **Release** GitHub Action checks that the tag matches the version, runs the tests, builds `wordpress-multisite-exporter.zip` and publishes the release.
+1. Bump the version in `wordpress-multisite-exporter.php`, in both the `Version:` header and `MSE_VERSION`, and add a `## x.y.z` section to `CHANGELOG.md` (shown in the update's "View details" popup).
+2. Push to `main`. That's it: sites see the update on their next check.
+
+Optional: pushing a tag like `v0.2.0` also runs the **Release** GitHub Action, which runs the tests and publishes a release with a ready-made `wordpress-multisite-exporter.zip` for fresh installs.
 
 ## Migrating a site
 

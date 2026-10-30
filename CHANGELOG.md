@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Updates now come straight from the GitHub main branch: every new version shows up under Network Admin → Plugins ("Check for updates") without publishing a GitHub release.
+
 ## 0.1.1
 
 - Missing theme: choose a replacement from the themes installed on the target network, per import or for all imports at once ("Start all").
